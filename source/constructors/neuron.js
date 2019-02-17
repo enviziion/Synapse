@@ -5,100 +5,90 @@ import getRandomLowNumber from '../functions/getrandomlownumber.js';
 import getRandomDecimal from '../functions/getrandomdecimal.js';
 
 class Neuron {
-  constructor(brain, type) {
-    this.type = type;
+  constructor(brain, layer) {
+    this.id = brain.counter;
+    this.layer = layer - 1;
     this.brain = brain;
     this.brain.counter++;
-    this.brain.globalReferenceNeurons[this.brain.counter] = this;
-    this.brain.layers[type][this.brain.counter] = this;
-    this.active = true;
-    this.id = brain.counter;
-    this.weight = 2;
-    this.lastInputTime = null;
+    this.brain.globalReferenceNeurons[this.id] = this;
+    this.brain.layers[this.layer][this.id] = this.brain.globalReferenceNeurons[this.id];
     this.connected = {};
     this.connections = {};
-    this.recentCharges = [];
-    this.memory = getRandomLowNumber(1, 10, 0.7);
-    //console.log('Memory', this.memory)
-    for (let i = 0; i < this.memory; i++) {
-      this.recentCharges.push(getRandomDecimal(0, 1));
-    }
-    this.polarization = getRandomDecimal(0, 1);
-    this.threshold = 1; // getRandomDecimal(5, 10); 
-    this.depolarizationRate = 0.001; // * this.threshold; //getRandomLowNumber(0, 0.001);
-    this.chargeRate = getRandomDecimal(0, 1);
+    this.memory = [];
+    this.chargeRate = getRandomDecimal(0.5, 2);
+    this.memorySize = 1; //getRandomNumber(1, 10);
+    this.threshold = getRandomDecimal(-1, 1);
+    this.rigidity = getRandomDecimal(0, 1);
     this.inverse = getRandomNumber(0, 1);
-    this.bias = null;
-    this.recentCharge = null;
-    this.bindMethods(this);
-    var initialChildrenCount = getRandomLowNumber(1, Object.keys(this.brain.globalReferenceNeurons).length, 0.65);
-    var neurons = Object.values(this.brain.globalReferenceNeurons);
-    //if (this.id === 4) {
-    //  console.log('FIRST', neurons);
-    //  throw 'stop';
-    //}
-    for (let i = 0; i < initialChildrenCount; i++) {
-      let child = neurons[Math.floor(Math.random() * neurons.length)];
-      this.connect(child);
+    this.bias = getRandomDecimal(-1, 1);
+    this.polarization = 0;
+    if (this.inverse === 0){
+      this.inverse = -1;
+    }
+    var initialChildrenCount = getRandomLowNumber(1, Object.keys(this.brain.layers[this.layer]).length, 0.75);
+    if (this.layer < this.brain.layers.length - 1){
+      for (let i = 0; i < initialChildrenCount; i++) {
+        let ahead = this.brain.layers.length - this.layer;
+        let targetLayer = getRandomNumber(this.layer + 1, this.brain.layers.length - 1);
+        let layer = this.brain.layers[targetLayer];
+        let index = getRandomNumber(0, Object.keys(layer).length - 1);
+        let key = Object.keys(layer)[index];
+        let child = layer[key];
+        this.connect(child);
+      }
     }
   }
-
-  bindMethods(self) {
-    self.connect = this.connect.bind(self);
-    self.measure = this.measure.bind(self);
-    self.delete = this.delete.bind(self);
-    self.transmit = this.transmit.bind(self);
-  }
-
-  // Alternate brain structuring system
-
-  ///*
-  test() {
-    //console.log('Connecting neuron ' + this.id + ' to neuron ' + target.id);
-    if ((Object.keys(this.connected).length === 0 || Object.keys(this.connections).length === 0) && this.type != 'input' && this.type != 'output') {
-      this.delete();
-    }
-  };
-  //*/
-
   connect(target) {
-    return new Connection(this.brain, this, target);
-    //console.log('Connecting neuron ' + this.id + ' to neuron ' + target.id);
+    new Connection(this.brain, this, target);
   };
   delete() {
-    this.brain.deleteNeuron(this.id);
+    Object.values(this.connections).forEach(connection => {
+      connection.delete();
+    });
+    Object.values(this.connected).forEach(connection => {
+      connection.delete();
+    });
+    delete this.brain.layers[this.layer][this.id]
+    delete this.brain.globalReferenceNeurons[this.id];
   }
   measure() {
-    return this.bias;
+    let total = 0;
+    let average = 0;
+    if (this.memory.length === 0) {
+      return this.bias;
+    } else if (this.memory.length === 1) {
+      average = this.memory[0];
+    } else if (this.memory.length > 1) {
+      this.memory.forEach(result => {
+        total += result;
+      });
+      average = total / this.memory.length;
+    }
+    let output = this.inverse * (((average * 100) + (this.bias * this.rigidity * 100)) / 200);
+    return output;
   }
   transmit(charge) {
-    var total = 0;
-    for (let i = 0; i < this.recentCharges.length; i++) {
-      total += this.recentCharges[i];
-    }
-    var bias = ((total / this.recentCharges.length) + charge + charge + charge + charge) / 5;
-    this.bias = bias;
-    //console.log('Bias: ' + bias);
-    this.recentCharges.push(charge);
-    if (this.recentCharges.length > this.memory) {
-      this.recentCharges.splice(0, 1);
-    }
-    this.recentCharge = charge;
-    if (this.lastInputTime) {
-      var passed = performance.now() - this.lastInputTime;
-      this.polarization -= passed * this.depolarizationRate;
-      if (this.polarization < 0) {
-        this.polarization = 0;
-      }
-      //console.log(passed + 'ms have passed, depolarized by ' + (passed * this.depolarizationRate) + ' for a resulting polarization of: ' + this.polarization + ' / ' + this.threshold + ' resulting in a bias of [' + this.bias + ']');
-    }
-    this.lastInputTime = performance.now();
+    //console.log("Neuron Recieved Charge:", charge)
+    //if (this.layer == this.brain.layers.length - 1) {
+    //  console.log("!!! Output Layer Affected !!!")
+    //}
     this.polarization += charge * this.chargeRate;
-    if (this.polarization >= this.threshold) {
+    this.memory.push(charge);
+    if (this.memory.length > this.memorySize) {
+      this.memory.splice(0, 1);
+    }
+    let result = this.measure();
+    //console.log("Connections", this.connections);
+    //console.log("Charge Rate", this.chargeRate)
+    //console.log("Threshold", this.threshold);
+    //console.log("Inverse", this.inverse);
+    //console.log("Polarization", this.polarization);
+    if (this.threshold > 0 && this.polarization >= this.threshold || this.threshold < 0 && this.polarization <= this.threshold) {
       this.polarization = 0;
-      this.recentCharge = this.bias;
+      //console.log("!!!!!")
       Object.values(this.connections).forEach(connection => {
-        connection.activate(this.bias);
+        //console.log("Connection", connection)
+        connection.activate(result);
       });
     }
   }

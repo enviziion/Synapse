@@ -4,18 +4,21 @@ import getRandomDecimal from './getrandomdecimal.js';
 import getRandomLowNumber from './getrandomlownumber.js';
 import Neuron from '../constructors/neuron.js';
 
-var mutations = {
+let mutations = {
   connect: {
     frequencyMod: 0,
     frequency: 1,
     mutate: function(brain) {
       //console.log('Connecting neurons.');
-      var count = getRandomNumber(1, 10);
-      for (let i = 0; i < count; i++) {
-        (getRandomNumber(0,1) === 0 ? getRandomProperty(brain.layers.hidden) : getRandomProperty(brain.layers.input)).connect(
-          getRandomNumber(0,1) === 0 ? getRandomProperty(brain.layers.hidden) : getRandomProperty(brain.layers.output)
-        );
-      }
+        let sourceLayerIndex = getRandomNumber(0, brain.layers.length - 2);
+        let sourceLayer = brain.layers[sourceLayerIndex];
+        if (sourceLayer.length > 0) {
+          let source = getRandomProperty(sourceLayer);
+          let targetLayerIndex = getRandomNumber(sourceLayerIndex + 1, brain.layers.length - 2);
+          let targetLayer = brain.layers[targetLayerIndex];
+          let target = getRandomProperty(targetLayer);
+          source.connect(target);
+        }
     }
   },
   disconnect: {
@@ -23,150 +26,113 @@ var mutations = {
     frequency: 1,
     mutate: function(brain) {
       //console.log('Disconnecting neurons.');
-      var count = getRandomNumber(1, 10);
-      for (let i = 0; i < count; i++) {
-        var connection = getRandomProperty(brain.globalReferenceConnections);
-        if (connection) { /* FUCKUP */
-          connection.delete();
-        }
-      }
+      let connection = getRandomProperty(brain.globalReferenceConnections);
+      connection.delete();
     }
   },
-  bias: {
+  connectionBias: {
     frequencyMod: 0,
     frequency: 1,
     mutate: function(brain) {
       //console.log('Biasing connections.');
-      var connection = getRandomProperty(brain.globalReferenceConnections);
-      if (connection) {
-        connection.bias += getRandomDecimal(0, 1);
-        if (connection.bias > 1) connection.bias = 1;
-      }
+      let connection = getRandomProperty(brain.globalReferenceConnections);
+      connection.bias = getRandomDecimal(-1, 1);
     }
   },
-  unbias: {
+  neuronBias: {
     frequencyMod: 0,
     frequency: 1,
     mutate: function(brain) {
-      //console.log('Unbiasing connections.');
-      var connection = getRandomProperty(brain.globalReferenceConnections);
-      if (connection) {
-        connection.bias -= getRandomDecimal(0, 1);
-        if (connection.bias < 0) connection.bias = 0;
-      }
+      //console.log('Biasing connections.');
+      let neuron = getRandomProperty(brain.globalReferenceNeurons);
+      neuron.bias = getRandomDecimal(-1, 1);
     }
   },
-  add: { //add a neuron
+  connectionRigidity: {
+    frequencyMod: 0,
+    frequency: 1,
+    mutate: function(brain) {
+      //console.log('Biasing connections.');
+      let connection = getRandomProperty(brain.globalReferenceConnections);
+      connection.rigidity = getRandomDecimal(0, 1);
+    }
+  },
+  neuronRigidity: {
+    frequencyMod: 0,
+    frequency: 1,
+    mutate: function(brain) {
+      //console.log('Biasing connections.');
+      let neuron = getRandomProperty(brain.globalReferenceNeurons);
+      neuron.rigidity = getRandomDecimal(0, 1);
+    }
+  },
+  addNeuron: {
     frequencyMod: 0,
     frequency: 1,
     mutate: function(brain) {
       //console.log('Adding neurons.');
-      var count = getRandomLowNumber(1, 10);
-      for (let i = 0; i < count; i++) {
-        var neuron = new Neuron(brain, 'hidden');
-      }
+      let layer = getRandomNumber(1, brain.layerCount - 2);
+      new Neuron(brain, layer);
     }
   },
-  remove: { //remove a neuron
+  removeNeuron: {
     frequencyMod: 0,
     frequency: 1,
     mutate: function(brain) {
       //console.log('Removing neurons.');
-      var count = getRandomLowNumber(1, 10);
-      for (let i = 0; i < count; i++) {
-          var neuron = getRandomProperty(brain.layers.hidden);
-          neuron.delete();
+      let layerIndex = getRandomNumber(1, brain.layerCount - 2);
+      let layer = brain.layers[layerIndex];
+      if (Object.keys(layer).length > 0) {
+        var neuron = getRandomProperty(layer);
+        neuron.delete();
       }
     }
   },
-  fillMemory: { //add memory capacity
+  invert: {
     frequencyMod: 0,
     frequency: 1,
     mutate: function(brain) {
       //console.log('Filling memory.');
       var neuron = getRandomProperty(brain.globalReferenceNeurons);
-      neuron.memory += 1;
-    }
-  },
-  drainMemory: { //shorten memory capacity
-    frequencyMod: 0,
-    frequency: 1,
-    mutate: function(brain) {
-      //console.log('Draining memory');
-      var neuron = getRandomProperty(brain.globalReferenceNeurons);
-      neuron.memory -= 1;
-      if (neuron.memory < 1) {
-        neuron.memory = 1;
+      neuron.inverse = getRandomNumber(0, 1);
+      if (neuron.inverse === 0) {
+        neuron.inverse = -1;
       }
     }
   },
-  /*
-  polarize: {
+  neuronMemory: {
     frequencyMod: 0,
-    frequency: 1,
+    frequency: 0,
     mutate: function(brain) {
+      //console.log('Filling memory.');
       var neuron = getRandomProperty(brain.globalReferenceNeurons);
-      neuron.polarization += getRandomDecimal(0, 1);
-      if (neuron.polarization > 1) {
-        neuron.polarization = 1;
-      }
+      neuron.memorySize = getRandomNumber(1, 10);;
     }
   },
-  depolarize: {
+  connectionMemory: {
     frequencyMod: 0,
-    frequency: 1,
+    frequency: 0,
     mutate: function(brain) {
-      var neuron = getRandomProperty(brain.globalReferenceNeurons);
-      neuron.polarization -= getRandomDecimal(0, 1);
-      if (neuron.polarization < 0) {
-        neuron.polarization = 0;
-      }
+      //console.log('Filling memory.');
+      var connection = getRandomProperty(brain.globalReferenceConnections);
+      connection.memorySize = getRandomNumber(1, 10);;
     }
   },
-  excite: { //lower action threshold
+  threshold: { //lower action threshold
     frequencyMod: 0,
     frequency: 1,
     mutate: function(brain) {
       var neuron = getRandomProperty(brain.globalReferenceNeurons);
-      neuron.threshold += getRandomDecimal(0, 1);
-      if (neuron.threshold > 1) {
-        neuron.threshold = 1;
-      }
+      neuron.threshold = getRandomDecimal(-1, 1);
     }
   },
-  calm: { //raise action threshold
+  chargeRate: { //raise action threshold
     frequencyMod: 0,
     frequency: 1,
     mutate: function(brain) {
       var neuron = getRandomProperty(brain.globalReferenceNeurons);
-      neuron.threshold -= getRandomDecimal(0, 1);
-      if (neuron.threshold < 0) {
-        neuron.threshold = 0;
-      }
-    }
-  },
-  charge: { //raise action threshold
-    frequencyMod: 0,
-    frequency: 1,
-    mutate: function(brain) {
-      var neuron = getRandomProperty(brain.globalReferenceNeurons);
-      neuron.chargeRate -= getRandomDecimal(0, 1);
-      if (neuron.chargeRate < 0) {
-        neuron.chargeRate = 0;
-      }
-    }
-  },
-  decharge: { //raise action threshold
-    frequencyMod: 0,
-    frequency: 1,
-    mutate: function(brain) {
-      var neuron = getRandomProperty(brain.globalReferenceNeurons);
-      neuron.chargeRate -= getRandomDecimal(0, 1);
-      if (neuron.chargeRate < 0) {
-        neuron.chargeRate = 0;
-      }
+      neuron.chargeRate = getRandomDecimal(0, 1);
     }
   }
-  */
 };
 export default mutations;

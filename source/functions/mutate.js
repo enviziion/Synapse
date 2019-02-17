@@ -8,13 +8,12 @@ Object.keys(mutations).map((key) => {
 	}
 });
 
-function mutate(max, child) {
-	//console.log('Max mutations: ', max);
+function mutate(child) {
+	const max = child.mutationRate;
 	for (let i = 0; i < max; i++) {
 		if (mutationList.length > 0) {
 			var rand = getRandomNumber(0, mutationList.length - 1);
 			var mutation = mutationList[rand];
-			//console.log('Debug: ', rand, mutationList, mutation)
 			mutations[mutation].mutate(child);
 		}
 	}

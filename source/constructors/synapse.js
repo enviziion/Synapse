@@ -1,76 +1,152 @@
 import Brain from './brain.js';
-import cloneBrain from '../functions/clonebrain.js';
+import getRandomNumber from '../functions/getrandomnumber.js';
+import getRandomProperty from '../functions/getrandomproperty.js';
 
 class Synapse {
-  constructor(inputSize, outputSize, runFunction) {
-    this.topScore = false;
-    this.threads = [];
-    this.inputSize = inputSize;
-    this.outputSize = outputSize;
-    this.runFunction = runFunction;
-    this.threadCount = navigator.hardwareConcurrency * 4;
-    for (let i1 = 0; i1 < this.threadCount; i1++) {
-      this.threads.push({});
-    }
-    for (let i1 = 0; i1 < this.threadCount; i1++) {
-      var that = this;
-      this.threads[i1] = {};
-      this.threads[i1].parent = new Brain(inputSize, outputSize);
-      this.threads[i1].active = true;
-      (async function run(i1) {
+  constructor(inputSize, outputSize, runFunction, targetScore, maxIterations = 100000) {
+    let speciesList = {};
+    let parent = new Brain(inputSize, outputSize);
+    let best;
+    let failCount = 0;
+    let failResetCount = 5000;
+    let iteration = 0;
+    let cont = true;
+    let topScore = false;
+    while (cont === true) {
+      let child = parent.spawn();
+      let score = runFunction(child);
+      if (!topScore) {
+        topScore = score;
+      } else if (score >= targetScore) {
+        console.log('!!! [' + iteration + '] Species evolved to achieve target score!', child);
+        console.log('[ ' + Object.keys(child.globalReferenceNeurons).length + ' neurons | ' + Object.keys(child.globalReferenceConnections).length + ' connections | ' + child.layers.length + ' layers ]', best);
+        break;
+      } else if (score > topScore) {
+        console.log('<><><><><><><><> [' + iteration + '] Species evolved from score ' + topScore + ' to ' + score + '! [ ' + Object.keys(child.globalReferenceNeurons).length + ' neurons | ' + Object.keys(child.globalReferenceConnections).length + ' connections | ' + child.layers.length + ' layers ]', child);
+        best = child.copy();
 
-        console.log('Running Synapse [THREAD ' + i1 + ']');
-        if (that.threads[i1].active) {
-          if (i1 === 0 && that.brain) {
-            var childScore = that.runFunction(that.brain.input, that.brain, i1);
-            if (childScore instanceof Promise) {
-              childScore = await childScore;
-            }
-            run(i1);
+        let normalized;
+
+        normalized = [];
+        console.log('[0, 0, 1, 1] [1, 0, 1, 1] =>', normalized)
+        best.input([0, 0, 1, 1, 1, 0, 1, 1]).forEach((val)=> {
+          if (val > 0) {
+            normalized.push(1);
           } else {
-            if (!that.threads[i1].complete) {
-              that.threads[i1].child = cloneBrain(that.threads[i1].parent);
-              that.threads[i1].child.generate();
-            } else {
-              console.log('Thread ' + i1 + ' completed.');
-              that.threads[i1].active = false;
-            }
-            var childScore = that.runFunction(that.threads[i1].child.input, that.threads[i1].child, i1);
-            if (childScore instanceof Promise) {
-              childScore = await childScore;
-            }
-            that.threads[i1].child.score = childScore;
-            if (childScore === true) {
-              that.threads[i1].complete = true;
-            } else {
-              if (that.brain && that.brain.score) {
-                //console.log('Synapse score: ' + that.brain.score)
-                //console.log('Thread ' + i1 + ' parent score: ' + that.threads[i1].parent.score);
-                //console.log('Thread ' + i1 + ' child score: ' + that.threads[i1].child.score);
-                if (!that.threads[i1].parent.score) {
-                  that.threads[i1].parent.score = childScore;
-                }
-                if (that.threads[i1].parent.score < childScore) { 
-                  console.log('Thread ' + i1 + ' evolved from ' + that.threads[i1].parent.score + ' to ' + that.threads[i1].child.score + '. Synapse top score is ' + that.brain.score);
-                  that.threads[i1].parent = that.threads[i1].child;
-                }
-                if (that.brain.score < that.threads[i1].parent.score) {
-                  console.log('Synapse evolved from ' + that.brain.score + ' to ' + that.threads[i1].parent.score);
-                  that.brain = cloneBrain(that.threads[i1].child);
-                  that.brain.leader = true;
-                  console.log('Thread ' + i1 + ' became leader.');
-                }
-              } else {
-                that.brain = that.threads[i1].child;
-                console.log('Brain born with score of ' + that.threads[i1].child.score);
-              }
-            }
-            run(i1);
+            normalized.push(0);
           }
-        } else {
-          console.log('Thread ' + i1 + ' inactive.');
+        });
+
+
+        normalized = [];
+        console.log('[0, 0, 1, 1] [0, 1, 1, 1] =>', normalized)
+        best.input([0, 0, 1, 1, 0, 1, 1, 1]).forEach((val)=> {
+          if (val > 0) {
+            normalized.push(1);
+          } else {
+            normalized.push(0);
+          }
+        });
+
+
+        normalized = [];
+        console.log('[1, 0, 1, 1] [0, 1, 1, 0] =>', normalized)
+        best.input([1, 0, 1, 1, 0, 1, 1, 0]).forEach((val)=> {
+          if (val > 0) {
+            normalized.push(1);
+          } else {
+            normalized.push(0);
+          }
+        });
+
+
+        normalized = [];
+        console.log('[1, 1, 1, 1] [1, 0, 1, 1] =>', normalized)
+        best.input([1, 1, 1, 1, 1, 0, 1, 1]).forEach((val)=> {
+          if (val > 0) {
+            normalized.push(1);
+          } else {
+            normalized.push(0);
+          }
+        });
+
+
+        speciesList[score] = child.copy();
+        maxIterations = iteration + 100000;
+        topScore = score;
+        parent = child.copy();
+        failCount = 0;
+      } else {
+        failCount++;
+        if (failCount > failResetCount) {
+          console.log('[ ' + score + ' | ' + topScore + ' ]');
+          console.log('[' + iteration + '] Species died out from failure to adapt after ' + failCount + ' generations!');
+          console.log('[ ' + Object.keys(child.globalReferenceNeurons).length + ' neurons | ' + Object.keys(child.globalReferenceConnections).length + ' connections | ' + child.layers.length + ' layers ]', best);
+          failCount = 0;
+          let choice = getRandomNumber(0, 1);
+          if (choice == 1) {
+            parent = new Brain(inputSize, outputSize);
+            console.log('New species born!');
+            console.log('New species:', parent.copy());
+          } else {
+            parent = getRandomProperty(speciesList);
+            console.log('Extinct species revived!');
+          }
+
         }
-      })(i1);
+      }
+      //console.log('Iteration ' + iteration + ' complete with score of ' + score + '  / ' + topScore);
+      iteration++;
+      if (maxIterations && iteration == maxIterations) {
+        console.log('[' + iteration + '] Reached max iterations with top score of ' + topScore);
+
+        let normalized;
+
+        normalized= [];
+        best.input([0, 0, 1, 1, 0, 0, 1, 1]).forEach((val)=> {
+          if (val > 0) {
+            normalized.push(1);
+          } else {
+            normalized.push(0);
+          }
+        });
+        console.log('[0, 0, 1, 1] [0, 0, 1, 1] =>', normalized)
+
+        normalized= [];
+        best.input([0, 0, 1, 1, 0, 0, 1, 1]).forEach((val)=> {
+          if (val > 0) {
+            normalized.push(1);
+          } else {
+            normalized.push(0);
+          }
+        });
+        console.log('[0, 0, 1, 1] [0, 0, 1, 1] =>', normalized)
+
+        normalized= [];
+        best.input([0, 0, 1, 1, 0, 0, 1, 1]).forEach((val)=> {
+          if (val > 0) {
+            normalized.push(1);
+          } else {
+            normalized.push(0);
+          }
+        });
+        console.log('[0, 0, 1, 1] [0, 0, 1, 1] =>', normalized)
+
+        normalized= [];
+        best.input([0, 0, 1, 1, 0, 0, 1, 1]).forEach((val)=> {
+          if (val > 0) {
+            normalized.push(1);
+          } else {
+            normalized.push(0);
+          }
+        });
+        console.log('[0, 0, 1, 1] [0, 0, 1, 1] =>', normalized)
+
+
+        console.log('[ ' + Object.keys(best.globalReferenceNeurons).length + ' neurons | ' + Object.keys(best.globalReferenceConnections).length + ' connections | ' + best.layers.length + ' layers ]', best);
+        console.log(best.copy())
+        break;
+      }
     }
   }
 }
