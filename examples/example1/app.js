@@ -1,71 +1,42 @@
 import Synapse from '../../source/constructors/synapse.js';
 
-function iterate(source, storage) {
-	let thread1 = source.slice();
-	let thread2 = source.slice();
-	thread1.push(0);
-	thread2.push(1);
-	if (thread1.length == 8) {
-		storage.push(thread1);
+function normalize(arr){
+	let result = [];
+	if (arr[0] < 0) {
+		result[0] = 0;
 	} else {
-		iterate(thread1, storage);
+		result[0] = 1;
 	}
-	if (thread2.length == 8) {
-		storage.push(thread2);
-	} else {
-		iterate(thread2, storage);
-	}
+	return result;
 }
 
-function xor(arr, brain) {
-	let totalScore = 0;
-	arr.forEach((item) => {
-		let arr1 = item.slice(0, 4);
-		let arr2 = item.slice(4, 8);
-		let arrxor1 = [];
-		let arrxor2 = brain.input(item);
-		let arrxor2Conv = [];
-		for (let i = 0; i < 4; i++) {
-			if (arr1[i] == arr2[i]) {
-				arrxor1.push(0);
-			} else {
-				arrxor1.push(1);
-			}
-		}
-		arrxor2.forEach((val)=> {
-			let converted;
-			if (val > 0) {
-				converted = 1;
-			} else {
-				converted = 0;
-			}
-			arrxor2Conv.push(converted);
-		});
-		//console.log(arr1, arr2, arrxor1, arrxor2Conv, arrxor2)
-		let iterativeScore = score(arrxor2Conv, arrxor1);
-		totalScore += iterativeScore;
-		//console.log('score', current, 'arr1', arr1, 'arr2', arr2, 'arrxor2', arrxor2, 'arrxor1', arrxor1, 'arrxorConv', arrxor2Conv)
-	});
-	return totalScore;
-}
-
-function score(arr, arrTarget){
+function test(brain){
 	let score = 0;
-	arr.forEach((val, index)=> {
-		let diff = Math.abs(arrTarget[index] - val);
-		//console.log('Diff', diff)
-		score -= diff;
-	});
-	//console.log('Score', score)
+	let result;
+	result = normalize(brain.input([0, 1]));
+	score -= Math.abs(1 - result[0]);
+	result = normalize(brain.input([1, 0]));
+	score -= Math.abs(1 - result[0]);
+	result = normalize(brain.input([1, 1]));
+	score -= Math.abs(0 - result[0]);
+	result = normalize(brain.input([0, 0]));
+	score -= Math.abs(0 - result[0]);
 	return score;
 }
 
-let result = [];
-iterate([], result);
-console.log('Tests', result);
-let synapse = new Synapse(8, 4, function(brain){
-	//console.time('Test');
-	let score = xor(result, brain);
-	//console.timeEnd('Test');
+let synapse = new Synapse({
+	inputSize: 2,
+	outputSize: 1,
+	targetScore: 0,
+	targetComplexity: 8
+});
+synapse.train(function(brain){
+	let score = test(brain);
 	return score;
-}, -300);
+});
+synapse.run(function(brain){
+	console.log('[0][1] => [1] =>', normalize(brain.input([0, 1]))[0]);
+	console.log('[1][0] => [1] =>', normalize(brain.input([1, 0]))[0]);
+	console.log('[1][1] => [0] =>', normalize(brain.input([1, 1]))[0]);
+	console.log('[0][0] => [0] =>', normalize(brain.input([0, 0]))[0]);
+});

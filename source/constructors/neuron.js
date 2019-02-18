@@ -7,7 +7,7 @@ import getRandomDecimal from '../functions/getrandomdecimal.js';
 class Neuron {
   constructor(brain, layer) {
     this.id = brain.counter;
-    this.layer = layer - 1;
+    this.layer = layer;
     this.brain = brain;
     this.brain.counter++;
     this.brain.globalReferenceNeurons[this.id] = this;
@@ -48,7 +48,11 @@ class Neuron {
     Object.values(this.connected).forEach(connection => {
       connection.delete();
     });
-    delete this.brain.layers[this.layer][this.id]
+    delete this.layer[this.id];
+    if (Object.keys(this.brain.layers[this.layer]).length === 0) {
+      console.log('Removing empty layer')
+      this.brain.layers.splice(this.layer, 1);
+    }
     delete this.brain.globalReferenceNeurons[this.id];
   }
   measure() {

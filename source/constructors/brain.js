@@ -7,18 +7,18 @@ import deepCopy from '../functions/clonedeep.js';
 
 class Brain {
   constructor(inputSize, outputSize) {
+    let layerCount = getRandomNumber(3, 20);
     this.inputSize = inputSize;
     this.outputSize = outputSize;
     this.layers = [];
-    this.layerCount = getRandomNumber(3, 20);
-    console.log('Brain created with ' + this.layerCount + ' layers.')
+    console.log('Brain created with ' + layerCount + ' layers.')
     this.layerSize = Math.ceil((inputSize + outputSize) / 2);
     this.counter = 0;
     this.globalReferenceNeurons = {};
     this.globalReferenceConnections = {};
     this.activations = 0;
     this.mutationRate = null;
-    for (let layerIndex = 0; layerIndex < this.layerCount; layerIndex++) {
+    for (let layerIndex = 0; layerIndex < layerCount; layerIndex++) {
       this.layers.push({});
     }
     for (let layerIndex = this.layers.length; layerIndex > 0; layerIndex--) {
@@ -28,7 +28,7 @@ class Brain {
         }
         continue;
       }
-      if (layerIndex === this.layerCount) {
+      if (layerIndex === layerCount) {
         for (let neuronIndex = 0; neuronIndex < outputSize; neuronIndex++) {
           new Neuron(this, layerIndex);
         }
@@ -46,15 +46,21 @@ class Brain {
     });
     //console.log("Finished propogating input, measuring output layer.")
     //console.timeEnd('Brain input');
-    return Object.values(this.layers[this.layerCount - 1]).map(neuron => {
+    return Object.values(this.layers[this.layers.length - 1]).map(neuron => {
       return neuron.measure();
     });
+  }
+  getComplexity(){
+    let total = 0;
+    total += Object.keys(this.globalReferenceNeurons).length;
+    total += Object.keys(this.globalReferenceConnections).length;
+    return total;
   }
   spawn(mutationRate) {
     //console.time('Spawn');
     let child = deepCopy(this);
     child.activations = 0;
-    child.mutationRate = mutationRate || getRandomNumber(1, 300);
+    child.mutationRate = mutationRate || getRandomNumber(1, 50);
     mutate(child);
     //console.timeEnd('Spawn');
     return child;
