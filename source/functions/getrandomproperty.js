@@ -1,16 +1,8 @@
+import getRandomNumber from './getrandomnumber.js';
+
 function getRandomProperty(obj) {
-    //console.log('Getting random property:');
-    //console.log(obj);
-    if (obj) {
-        var keys = Object.keys(obj);
-        //console.log(keys);
-        var num = keys.length * Math.random() << 0;
-        //console.log(num);
-        //console.log('Grp successful.');
-        //console.log(obj[keys[num]]);
-        return obj[keys[num]];
-    } else {
-        throw ('Null or undefined object passed to grp.');
-    }
+  let keys = Object.keys(obj);
+  let key = keys[getRandomNumber(0, keys.length - 1)];
+  return obj[key];
 }
 export default getRandomProperty;

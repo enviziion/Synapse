@@ -4,10 +4,28 @@ import getRandomNumber from '../functions/getrandomnumber.js';
 import getRandomLowNumber from '../functions/getrandomlownumber.js';
 import getRandomDecimal from '../functions/getrandomdecimal.js';
 
+function testFidelity(brain){
+  brain.layers.forEach((layer)=>{
+    Object.values(layer).forEach((neuron2)=>{
+      let found = false;
+      Object.values(brain.globalReferenceNeurons).forEach((neuron)=> {
+        if (neuron2.id === neuron.id) {
+          found = true;
+        }
+      });
+      if (!found) {
+        throw '!!! Failed to locate neuron in layer matrix!';
+      } else {
+        console.log('Located neuron.');
+      }
+    });
+  });
+}
+
 class Neuron {
   constructor(brain, layer) {
     this.id = brain.counter;
-    this.layer = layer;
+    this.layer = layer - 1;
     this.brain = brain;
     this.brain.counter++;
     this.brain.globalReferenceNeurons[this.id] = this;
@@ -22,6 +40,7 @@ class Neuron {
     this.inverse = getRandomNumber(0, 1);
     this.bias = getRandomDecimal(-1, 1);
     this.polarization = 0;
+    this.reductions = 0;
     if (this.inverse === 0){
       this.inverse = -1;
     }
@@ -48,12 +67,27 @@ class Neuron {
     Object.values(this.connected).forEach(connection => {
       connection.delete();
     });
-    delete this.layer[this.id];
+    console.log('debug');
+    console.log('neuron', this);
+    console.log('layer index', this.layer);
+    console.log('layers', this.brain.layers);
+    console.log('id', this.id);
+    console.log('layer', this.brain.layers[this.layer]);
+    console.log('neuron reference', this.brain.layers[this.layer][this.id]);
+    console.log('---');
+    delete this.brain.layers[this.layer][this.id];
     if (Object.keys(this.brain.layers[this.layer]).length === 0) {
-      console.log('Removing empty layer')
+      console.log('Removing empty layer');
       this.brain.layers.splice(this.layer, 1);
+      Object.values(this.brain.globalReferenceNeurons).forEach((neuron)=> {
+        if (neuron.layer >= this.layer) {
+          neuron.reductions++;
+          neuron.layer--;
+        }
+      });
     }
     delete this.brain.globalReferenceNeurons[this.id];
+    testFidelity(this.brain);
   }
   measure() {
     let total = 0;
