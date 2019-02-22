@@ -19,7 +19,7 @@ class Synapse {
     console.log('brain', parent.copy().getComplexity());
     let best = parent;
     let failCount = 0;
-    let failResetCount = 5000;
+    let failResetCount = 500;
     let iteration = 0;
     let cont = true;
     let topScore = false;
