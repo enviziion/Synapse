@@ -4,24 +4,6 @@ import getRandomNumber from '../functions/getrandomnumber.js';
 import getRandomLowNumber from '../functions/getrandomlownumber.js';
 import getRandomDecimal from '../functions/getrandomdecimal.js';
 
-function testFidelity(brain){
-  brain.layers.forEach((layer)=>{
-    Object.values(layer).forEach((neuron2)=>{
-      let found = false;
-      Object.values(brain.globalReferenceNeurons).forEach((neuron)=> {
-        if (neuron2.id === neuron.id) {
-          found = true;
-        }
-      });
-      if (!found) {
-        throw '!!! Failed to locate neuron in layer matrix!';
-      } else {
-        console.log('Located neuron.');
-      }
-    });
-  });
-}
-
 class Neuron {
   constructor(brain, layer) {
     this.id = brain.counter;
@@ -29,11 +11,15 @@ class Neuron {
     this.brain = brain;
     this.brain.counter++;
     this.brain.globalReferenceNeurons[this.id] = this;
-    this.brain.layers[this.layer][this.id] = this.brain.globalReferenceNeurons[this.id];
+    if (this.layer === 0) {
+      this.brain.inputLayer[this.id] = this;
+    } else if (this.layer === this.brain.layerCount - 1){
+      this.brain.outputLayer[this.id] = this;
+    }
     this.connected = {};
     this.connections = {};
     this.memory = [];
-    this.chargeRate = getRandomDecimal(0.5, 2);
+    this.chargeRate = getRandomDecimal(0.5, 4);
     this.memorySize = 1; //getRandomNumber(1, 10);
     this.threshold = getRandomDecimal(-1, 1);
     this.rigidity = getRandomDecimal(0, 1);
@@ -44,16 +30,21 @@ class Neuron {
     if (this.inverse === 0){
       this.inverse = -1;
     }
-    var initialChildrenCount = getRandomLowNumber(1, Object.keys(this.brain.layers[this.layer]).length, 0.75);
-    if (this.layer < this.brain.layers.length - 1){
+    if (this.layer < this.brain.layerCount - 1){
+      let initialChildrenCount = getRandomNumber(1, 10);
+      //console.log('initial children count', initialChildrenCount);
+      //console.log('brain', brain);
       for (let i = 0; i < initialChildrenCount; i++) {
-        let ahead = this.brain.layers.length - this.layer;
-        let targetLayer = getRandomNumber(this.layer + 1, this.brain.layers.length - 1);
-        let layer = this.brain.layers[targetLayer];
-        let index = getRandomNumber(0, Object.keys(layer).length - 1);
-        let key = Object.keys(layer)[index];
-        let child = layer[key];
-        this.connect(child);
+        let targetLayerIndex = getRandomNumber(this.layer + 1, this.brain.layerCount - 1);
+        //console.log('target layer index', targetLayerIndex);
+        this.brain.getLayer(targetLayerIndex, (targetLayer)=>{
+          //console.log('target layer', targetLayer);
+          let index = getRandomNumber(0, targetLayer.length - 1);
+          //console.log('index', index);
+          let child = targetLayer[index];
+          //console.log('child', child)
+          this.connect(child);
+        });
       }
     }
   }
@@ -67,27 +58,7 @@ class Neuron {
     Object.values(this.connected).forEach(connection => {
       connection.delete();
     });
-    console.log('debug');
-    console.log('neuron', this);
-    console.log('layer index', this.layer);
-    console.log('layers', this.brain.layers);
-    console.log('id', this.id);
-    console.log('layer', this.brain.layers[this.layer]);
-    console.log('neuron reference', this.brain.layers[this.layer][this.id]);
-    console.log('---');
-    delete this.brain.layers[this.layer][this.id];
-    if (Object.keys(this.brain.layers[this.layer]).length === 0) {
-      console.log('Removing empty layer');
-      this.brain.layers.splice(this.layer, 1);
-      Object.values(this.brain.globalReferenceNeurons).forEach((neuron)=> {
-        if (neuron.layer >= this.layer) {
-          neuron.reductions++;
-          neuron.layer--;
-        }
-      });
-    }
     delete this.brain.globalReferenceNeurons[this.id];
-    testFidelity(this.brain);
   }
   measure() {
     let total = 0;

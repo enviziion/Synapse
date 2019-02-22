@@ -10,12 +10,12 @@ let mutations = {
     frequency: 1,
     mutate: function(brain) {
       //console.log('Connecting neurons.');
-        let sourceLayerIndex = getRandomNumber(0, brain.layers.length - 2);
-        let sourceLayer = brain.layers[sourceLayerIndex];
+        let sourceLayerIndex = getRandomNumber(0, brain.layerCount - 2);
+        let sourceLayer = brain.getLayer(sourceLayerIndex);
         if (sourceLayer.length > 0) {
           let source = getRandomProperty(sourceLayer);
-          let targetLayerIndex = getRandomNumber(sourceLayerIndex + 1, brain.layers.length - 1);
-          let targetLayer = brain.layers[targetLayerIndex];
+          let targetLayerIndex = getRandomNumber(sourceLayerIndex + 1, brain.layerCount - 1);
+          let targetLayer = brain.getLayer(targetLayerIndex);
           let target = getRandomProperty(targetLayer);
           source.connect(target);
         }
@@ -77,7 +77,7 @@ let mutations = {
     frequency: 1,
     mutate: function(brain) {
       //console.log('Adding neurons.');
-      let layer = getRandomNumber(1, brain.layers.length - 2);
+      let layer = getRandomNumber(1, brain.layerCount - 2);
       new Neuron(brain, layer);
     }
   },
@@ -86,9 +86,9 @@ let mutations = {
     frequency: 1,
     mutate: function(brain) {
       //console.log('Removing neurons.');
-      let layerIndex = getRandomNumber(1, brain.layers.length - 2);
-      let layer = brain.layers[layerIndex];
-      if (Object.keys(layer).length > 0) {
+      let layerIndex = getRandomNumber(1, brain.layerCount - 2);
+      let layer = brain.getLayer(layerIndex);
+      if (layer.length > 0) {
         var neuron = getRandomProperty(layer);
         neuron.delete();
       }

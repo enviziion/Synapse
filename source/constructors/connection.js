@@ -4,6 +4,10 @@ import getRandomDecimal from '../functions/getrandomdecimal.js';
 
 class Connection {
   constructor(brain, source, target) {
+    //console.log('Connecting ', source, 'to', target);
+    if (!target) throw 'Connection missing target!';
+    if (!source) throw 'Connection missing source!';
+    if (!brain) throw 'Connection missing brain!';
     this.brain = brain;
     this.brain.counter++;
     this.brain.globalReferenceConnections[this.brain.counter] = this;
@@ -43,9 +47,9 @@ class Connection {
     this.target.transmit(result);
   }
   delete() {
-    delete this.brain.globalReferenceConnections[this.id];
     if (this.source) delete this.source.connections[this.id];
     if (this.target) delete this.target.connected[this.id];
+    delete this.brain.globalReferenceConnections[this.id];
   }
 }
 export default Connection;

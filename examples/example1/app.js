@@ -28,7 +28,7 @@ let synapse = new Synapse({
 	inputSize: 2,
 	outputSize: 1,
 	targetScore: 0,
-	targetComplexity: 8
+	targetComplexity: 20
 });
 synapse.train(function(brain){
 	let score = test(brain);
